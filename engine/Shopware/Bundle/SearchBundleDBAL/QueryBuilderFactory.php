@@ -28,6 +28,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\Connection;
 use Shopware\Bundle\SearchBundle\ConditionInterface;
 use Shopware\Bundle\SearchBundle\Criteria;
+use Shopware\Bundle\SearchBundle\ProxyConditionInterface;
 use Shopware\Bundle\SearchBundle\SortingInterface;
 use Shopware\Bundle\StoreFrontBundle\Struct\ShopContextInterface;
 
@@ -172,6 +173,10 @@ class QueryBuilderFactory implements QueryBuilderFactoryInterface
     private function addConditions(Criteria $criteria, QueryBuilder $query, ShopContextInterface $context)
     {
         foreach ($criteria->getConditions() as $condition) {
+            if ($condition instanceof ProxyConditionInterface) {
+                $condition = $condition->createCondition($context);
+            }
+
             $handler = $this->getConditionHandler($condition);
             $handler->generateCondition($condition, $query, $context);
         }

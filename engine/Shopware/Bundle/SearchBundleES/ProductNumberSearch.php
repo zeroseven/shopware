@@ -32,6 +32,7 @@ use Shopware\Bundle\SearchBundle\Criteria;
 use Shopware\Bundle\SearchBundle\CriteriaPartInterface;
 use Shopware\Bundle\SearchBundle\ProductNumberSearchInterface;
 use Shopware\Bundle\SearchBundle\ProductNumberSearchResult;
+use Shopware\Bundle\SearchBundle\ProxyConditionInterface;
 use Shopware\Bundle\StoreFrontBundle\Struct\Attribute;
 use Shopware\Bundle\StoreFrontBundle\Struct\BaseProduct;
 use Shopware\Bundle\StoreFrontBundle\Struct\ShopContextInterface;
@@ -137,6 +138,10 @@ class ProductNumberSearch implements ProductNumberSearchInterface
         array $criteriaParts
     ) {
         foreach ($criteriaParts as $criteriaPart) {
+            if ($criteriaPart instanceof ProxyConditionInterface) {
+                $criteriaPart = $criteriaPart->createCondition($context);
+            }
+
             $handler = $this->getHandler($criteriaPart);
             if (!$handler) {
                 continue;

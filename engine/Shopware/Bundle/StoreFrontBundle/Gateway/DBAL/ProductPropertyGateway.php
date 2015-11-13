@@ -100,6 +100,8 @@ class ProductPropertyGateway implements Gateway\ProductPropertyGatewayInterface
             ->addSelect($this->fieldHelper->getMediaFields())
         ;
 
+        $query->addSelect('relations.position as __relations_position');
+
         $query->addSelect('
         (
             CASE
@@ -192,8 +194,11 @@ class ProductPropertyGateway implements Gateway\ProductPropertyGatewayInterface
 
         $properties = [];
         foreach ($data as $productId => $values) {
+            $this->sortValues($values);
+
             $properties[$productId] = $this->propertyHydrator->hydrateValues($values);
         }
+
 
         $result = [];
         foreach ($products as $product) {
@@ -205,5 +210,25 @@ class ProductPropertyGateway implements Gateway\ProductPropertyGatewayInterface
         }
 
         return $result;
+    }
+
+    /**
+     * @param array $values
+     */
+    private function sortValues(array &$values)
+    {
+        if ($values['__propertySet_sortmode'] == 3) {
+            return;
+        }
+
+        usort($values, function ($a, $b) {
+            if ($a['__relations_position'] > $b['__relations_position']) {
+                return 1;
+            } elseif ($a['__relations_position'] < $b['__relations_position']) {
+                return -1;
+            }
+
+            return strnatcmp($a['__propertyOption_value'], $b['__propertyOption_value']);
+        });
     }
 }

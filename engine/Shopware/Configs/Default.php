@@ -22,6 +22,16 @@ return array_replace_recursive([
             'local' => [
                 'type' => 'local',
                 'mediaUrl' => '',
+                'permissions' => [
+                    'file' => [
+                        'public' => 0666 & ~umask(),
+                        'private' => 0600 & ~umask(),
+                    ],
+                    'dir' => [
+                        'public' => 0777 & ~umask(),
+                        'private' => 0700 & ~umask(),
+                    ]
+                ],
                 'path' => realpath(__DIR__ . '/../../../')
             ],
             'ftp' => [
@@ -81,7 +91,11 @@ return array_replace_recursive([
     'store' => [
         'apiEndpoint' => 'https://api.shopware.com',
     ],
-    'plugins' => [],
+    'plugin_directories' => [
+        'Default'   => $this->AppPath('Plugins_' . 'Default'),
+        'Local'     => $this->AppPath('Plugins_' . 'Local'),
+        'Community' => $this->AppPath('Plugins_' . 'Community'),
+    ],
     'template' => [
         'compileCheck' => true,
         'compileLocking' => true,
@@ -119,7 +133,7 @@ return array_replace_recursive([
         'save_handler' => 'db'
     ],
     'phpsettings' => [
-        'error_reporting' => E_ALL,
+        'error_reporting' => E_ALL & ~E_USER_DEPRECATED,
         'display_errors' => 1,
         'date.timezone' => 'Europe/Berlin',
     ],

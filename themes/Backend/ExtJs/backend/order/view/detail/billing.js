@@ -80,8 +80,7 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
         phone:'{s name=address/phone}Phone{/s}',
         company:'{s name=address/company}Company{/s}',
         department:'{s name=address/department}Department{/s}',
-        vatId:'{s name=address/vat_id}VAT ID{/s}',
-        fax:'{s name=address/fax}Fax{/s}'
+        vatId:'{s name=address/vat_id}VAT ID{/s}'
     },
 
     /**
@@ -130,7 +129,7 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
             layout:'anchor',
             defaults:{
                 anchor:'95%',
-                labelWidth:120,
+                labelWidth:155,
                 minWidth:250,
                 labelStyle: 'font-weight: 700;',
                 style: {
@@ -147,7 +146,7 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
             layout:'anchor',
             defaults:{
                 anchor:'95%',
-                labelWidth:120,
+                labelWidth:155,
                 minWidth:250,
                 labelStyle: 'font-weight: 700;',
                 style: {
@@ -158,7 +157,19 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
             items:me.createRightElements()
         });
 
-        return [ leftContainer, rightContainer ];
+        var id = null;
+        if (me.record && me.record.getBilling() && me.record.getBilling().first()) {
+            id = me.record.getBilling().first().get('id');
+        }
+
+        me.attributeForm = Ext.create('Shopware.attribute.Form', {
+            name: 'billing-attributes',
+            table: 's_order_billingaddress_attributes',
+            columnWidth: 1
+        });
+        me.attributeForm.loadAttribute(id);
+
+        return [ leftContainer, rightContainer, me.attributeForm ];
     },
 
     /**
@@ -168,43 +179,6 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
      */
     createLeftElements:function () {
         var me = this;
-
-        me.countryStateCombo = Ext.create('Ext.form.field.ComboBox', {
-            name:'billing[stateId]',
-            action: 'billingStateId',
-            fieldLabel:me.snippets.state,
-            valueField: 'id',
-            displayField: 'name',
-            forceSelection: true,
-            labelWidth:120,
-            store: Ext.create('Shopware.store.CountryState'),
-            minWidth: 250,
-            editable: false,
-            hidden: true,
-            triggerAction:'all',
-            queryMode: 'local'
-        });
-
-        me.countryCombo = Ext.create('Ext.form.field.ComboBox', {
-            triggerAction:'all',
-            name:'billing[countryId]',
-            fieldLabel:me.snippets.country,
-            valueField:'id',
-            queryMode: 'local',
-            displayField:'name',
-            forceSelection: true,
-            store:me.countriesStore,
-            labelWidth:120,
-            minWidth:250,
-            required:true,
-            editable:false,
-            allowBlank:false,
-            listeners: {
-                change: function(field, newValue, oldValue, record) {
-                    me.fireEvent('countryChanged', field, newValue, me.countryStateCombo, me.record.getBilling().first());
-                }
-            }
-        });
 
         return [{
             xtype:'combobox',
@@ -230,6 +204,69 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
             required:true,
             allowBlank:false
         }, {
+            name:'billing[company]',
+            fieldLabel:me.snippets.company
+        }, {
+            name:'billing[department]',
+            fieldLabel:me.snippets.department
+        }, {
+            name:'billing[vatId]',
+            fieldLabel:me.snippets.vatId
+        }, {
+            name:'billing[phone]',
+            fieldLabel:me.snippets.phone
+        }, {
+            name:'billing[fax]',
+            fieldLabel:me.snippets.fax
+        }];
+    },
+
+    /**
+     * Creates the left container of the billing field set.
+     *
+     * @return Ext.container.Container Contains the three components
+     */
+    createRightElements:function () {
+        var me = this;
+
+        me.countryStateCombo = Ext.create('Ext.form.field.ComboBox', {
+            name:'billing[stateId]',
+            action: 'billingStateId',
+            fieldLabel:me.snippets.state,
+            valueField: 'id',
+            displayField: 'name',
+            forceSelection: true,
+            labelWidth:155,
+            store: Ext.create('Shopware.store.CountryState'),
+            minWidth: 250,
+            editable: false,
+            hidden: true,
+            triggerAction:'all',
+            queryMode: 'local'
+        });
+
+        me.countryCombo = Ext.create('Ext.form.field.ComboBox', {
+            triggerAction:'all',
+            name:'billing[countryId]',
+            fieldLabel:me.snippets.country,
+            valueField:'id',
+            queryMode: 'local',
+            displayField:'name',
+            forceSelection: true,
+            store:me.countriesStore,
+            labelWidth:155,
+            minWidth:250,
+            required:true,
+            editable:false,
+            allowBlank:false,
+            listeners: {
+                change: function(field, newValue, oldValue, record) {
+                    me.fireEvent('countryChanged', field, newValue, me.countryStateCombo, me.record.getBilling().first());
+                }
+            }
+        });
+
+        return [{
             name:'billing[street]',
             fieldLabel:me.snippets.street,
             required:true,
@@ -250,36 +287,7 @@ Ext.define('Shopware.apps.Order.view.detail.Billing', {
             fieldLabel:me.snippets.city,
             required:true,
             allowBlank:false
-        },
-        me.countryStateCombo,
-        me.countryCombo
-        ];
-    },
-
-    /**
-     * Creates the left container of the billing field set.
-     *
-     * @return Ext.container.Container Contains the three components
-     */
-    createRightElements:function () {
-        var me = this;
-
-        return [{
-            name:'billing[company]',
-            fieldLabel:me.snippets.company
-        }, {
-            name:'billing[department]',
-            fieldLabel:me.snippets.department
-        }, {
-            name:'billing[vatId]',
-            fieldLabel:me.snippets.vatId
-        }, {
-            name:'billing[phone]',
-            fieldLabel:me.snippets.phone
-        }, {
-            name:'billing[fax]',
-            fieldLabel:me.snippets.fax
-        }];
+        }, me.countryStateCombo, me.countryCombo];
     }
 });
 //{/block}

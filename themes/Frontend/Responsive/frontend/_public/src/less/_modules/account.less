@@ -430,7 +430,16 @@ It allows the user to directly see and change the important information of their
 
 .account--content.account--addresses {
     .unitize(margin, 0);
-    .unitize(padding-top, 50);
+    .unitize(padding-top, 45);
+
+    .addresses--item-body .panel--title {
+        .unitize-margin(0, 0, 20, 0);
+        padding-top: 0;
+    }
+
+    .account--welcome {
+        margin-bottom: 0;
+    }
 
     &.account--addresses-form {
         .alert {
@@ -445,6 +454,28 @@ It allows the user to directly see and change the important information of their
         .addresses--submit {
             width: 100%;
             text-align: center;
+        }
+    }
+
+    .addresses--item-default-container {
+        .unitize(margin-bottom, 15);
+
+        h3 {
+            margin: 0;
+        }
+    }
+
+    .addresses--actions-set-defaults {
+        .unitize(margin-bottom, 10);
+        line-height: normal;
+
+        .btn {
+            padding: 0;
+            color: @brand-secondary;
+
+            &:hover {
+                color: @brand-primary;
+            }
         }
     }
 
@@ -485,30 +516,39 @@ It allows the user to directly see and change the important information of their
 
     }
 
-    .birthday--label {
-        .clearfix();
-        .unitize-margin(0, 0, 5, 0);
-        display: block;
-        font-weight: bold;
+    &.addresses--delete {
+        .panel {
+            .unitize(margin-bottom, 20);
+        }
     }
 
-}
+    .addresses--delete-actions .btn.is--primary {
+        float: right;
+    }
 
-.addresses--content {
-    .clearfix();
+    .addresses--content {
+        .clearfix();
 
-    margin: -2% 0 0 -2%;
-}
+        margin: -2% 0 0 -2%;
+    }
 
-.addresses--content-item {
-    width: 100%;
-    float: left;
-    padding: 2% 0 0 2%;
-}
+    .addresses--content-item {
+        width: 100%;
+        float: left;
+        padding: 2% 0 0 2%;
 
-.addresses--item-create {
-    .btn {
+        .panel--actions {
+            display: table-cell;
+            vertical-align: bottom;
+        }
+    }
+
+    .addresses--item-create .btn {
         text-align: center;
+    }
+
+    .addresses--item-actions form {
+        display: block;
     }
 }
 
@@ -944,10 +984,6 @@ It allows the user to directly see and change the important information of their
 
         .addresses--content-item {
             width: 50%;
-
-            .addresses--item-body {
-                .unitize(height, 255);
-            }
         }
 
         .addresses--zip-city {

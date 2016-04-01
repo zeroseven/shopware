@@ -24,6 +24,7 @@
 
 namespace Shopware;
 
+use Shopware\Bundle\AttributeBundle\DependencyInjection\Compiler\SearchRepositoryCompilerPass;
 use Shopware\Bundle\ESIndexingBundle\DependencyInjection\CompilerPass\SettingsCompilerPass;
 use Shopware\Bundle\ESIndexingBundle\DependencyInjection\CompilerPass\SynchronizerCompilerPass;
 use Shopware\Bundle\ESIndexingBundle\DependencyInjection\CompilerPass\DataIndexerCompilerPass;
@@ -302,12 +303,7 @@ class Kernel implements HttpKernelInterface
      */
     protected function initializeShopware()
     {
-        $this->shopware = new \Shopware(
-            $this->environment,
-            $this->config,
-            $this->container
-        );
-
+        $this->shopware = new \Shopware($this->container);
         $this->container->setApplication($this->shopware);
     }
 
@@ -479,6 +475,8 @@ class Kernel implements HttpKernelInterface
         $loader->load('ESIndexingBundle/services.xml');
         $loader->load('MediaBundle/services.xml');
         $loader->load('FormBundle/services.xml');
+        $loader->load('AccountBundle/services.xml');
+        $loader->load('AttributeBundle/services.xml');
 
         if ($this->isElasticSearchEnabled()) {
             $loader->load('SearchBundleES/services.xml');
@@ -502,6 +500,7 @@ class Kernel implements HttpKernelInterface
         $container->addCompilerPass(new SettingsCompilerPass());
         $container->addCompilerPass(new FormPass());
         $container->addCompilerPass(new AddConstraintValidatorsPass());
+        $container->addCompilerPass(new SearchRepositoryCompilerPass());
 
         if ($this->isElasticSearchEnabled()) {
             $container->addCompilerPass(new SearchHandlerCompilerPass());
@@ -581,10 +580,13 @@ class Kernel implements HttpKernelInterface
     }
 
     /**
+     * @deprecated since 5.2, to be removed in 5.3
      * @return \Shopware
      */
     public function getShopware()
     {
+        trigger_error('Shopware\Kernel::getShopware() is deprecated since version 5.2 and will be removed in 5.3.', E_USER_DEPRECATED);
+
         return $this->shopware;
     }
 

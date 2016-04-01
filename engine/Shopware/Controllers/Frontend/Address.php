@@ -22,14 +22,15 @@
  * our trademarks remain entirely with us.
  */
 
-use Shopware\Bundle\FormBundle\Forms\Account\AddressFormType;
-use \Enlight_Controller_Request_Request as Request;
+use Shopware\Bundle\AccountBundle\Form\Account\AddressFormType;
+use Shopware\Bundle\AccountBundle\Service\AddressServiceInterface;
 use Shopware\Models\Customer\Address;
 use Shopware\Models\Customer\AddressRepository;
 use Shopware\Models\Customer\Customer;
+use Symfony\Component\Form\FormInterface;
 
 /**
- * Account controller
+ * Address controller
  */
 class Shopware_Controllers_Frontend_Address extends Enlight_Controller_Action
 {
@@ -39,18 +40,24 @@ class Shopware_Controllers_Frontend_Address extends Enlight_Controller_Action
     protected $admin;
 
     /**
-     * Init controller method
+     * @var AddressRepository
      */
-    public function init()
-    {
-        $this->admin = Shopware()->Modules()->Admin();
-    }
+    protected $addressRepository;
+
+    /**
+     * @var AddressServiceInterface
+     */
+    protected $addressService;
 
     /**
      * Pre dispatch method
      */
     public function preDispatch()
     {
+        $this->admin = Shopware()->Modules()->Admin();
+        $this->addressRepository = $this->get('models')->getRepository(Address::class);
+        $this->addressService = $this->get('shopware_account.address_service');
+
         $this->View()->assign('sUserLoggedIn', $this->admin->sCheckUser());
 
         if (!$this->View()->getAssign('sUserLoggedIn')) {
@@ -67,13 +74,9 @@ class Shopware_Controllers_Frontend_Address extends Enlight_Controller_Action
      */
     public function indexAction()
     {
-        /** @var AddressRepository $repository */
-        $repository = $this->get('models')->getRepository('Shopware\Models\Customer\Address');
+        $addresses = $this->addressRepository->getListArray($this->get('session')->get('sUserId'));
 
-        $addresses = $repository
-            ->getByUserQuery($this->get('session')->get('sUserId'))
-            ->getResult(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
-
+        $this->View()->assign('error', $this->Request()->getParam('error'));
         $this->View()->assign('success', $this->Request()->getParam('success'));
         $this->View()->assign('addresses', $addresses);
     }
@@ -83,7 +86,31 @@ class Shopware_Controllers_Frontend_Address extends Enlight_Controller_Action
      */
     public function createAction()
     {
-        $this->forward('form');
+        $address = new Address();
+        $form = $this->createForm(AddressFormType::class, $address, ['allow_extra_fields' => true]);
+        $form->handleRequest($this->Request());
+
+        if ($form->isValid()) {
+            $userId = $this->get('session')->get('sUserId');
+            $customer = $this->get('models')->find(Customer::class, $userId);
+
+            $this->addressService->create($address, $customer);
+
+            $extraData = $form->getExtraData();
+
+            if (!empty($extraData['set_default_billing'])) {
+                $this->addressService->setDefaultBillingAddress($address);
+            }
+
+            if (!empty($extraData['set_default_shipping'])) {
+                $this->addressService->setDefaultShippingAddress($address);
+            }
+
+            $this->redirect(['action' => 'index', 'success' => 'create']);
+            return;
+        }
+
+        $this->View()->assign($this->getFormViewData($form));
     }
 
     /**
@@ -91,72 +118,127 @@ class Shopware_Controllers_Frontend_Address extends Enlight_Controller_Action
      */
     public function editAction()
     {
-        $this->forward('form');
-    }
-
-    /**
-     * Form to create and edit addresses
-     */
-    public function formAction()
-    {
-        $address = $this->getAddressByRequest($this->Request());
+        $userId = $this->get('session')->get('sUserId');
+        $addressId = $this->Request()->getParam('id', null);
+        $address = $this->addressRepository->getOneByUser($addressId, $userId);
 
         $form = $this->createForm(AddressFormType::class, $address, ['allow_extra_fields' => true]);
         $form->handleRequest($this->Request());
 
         if ($form->isValid()) {
-            $this->get('models')->flush($address);
+            $this->addressService->update($address);
 
-            $this->redirect([
-                'controller' => 'address',
-                'action' => 'index',
-                'success' => 'save'
-            ]);
+            $extraData = $form->getExtraData();
 
-            return;
-        } else {
-            $errorFlags = [];
-            $errorMessages = [];
-
-            foreach ($form->getErrors(true) as $error) {
-                $errorFlags[$error->getOrigin()->getName()] = true;
-                $errorMessages[] = $this->get('snippets')->getNamespace('frontend/account/internalMessages')
-                    ->get('ErrorFillIn', 'Please fill in all red fields');
+            if (!empty($extraData['set_default_billing'])) {
+                $this->addressService->setDefaultBillingAddress($address);
             }
 
-            $errorMessages = array_unique($errorMessages);
+            if (!empty($extraData['set_default_shipping'])) {
+                $this->addressService->setDefaultShippingAddress($address);
+            }
 
-            $this->View()->assign('error_flags', $errorFlags);
-            $this->View()->assign('error_messages', $errorMessages);
+            $this->redirect(['action' => 'index', 'success' => 'update']);
+            return;
         }
 
-        $this->View()->assign('countryList', $this->admin->sGetCountryList());
-        $this->View()->assign('formData', array_merge(Shopware()->Models()->toArray($form->getViewData()), $form->getExtraData()));
+        $this->View()->assign($this->getFormViewData($form));
     }
 
     /**
-     * @param Request $request
-     * @return Address
+     * Delete confirm action
      */
-    private function getAddressByRequest(Request $request)
+    public function deleteAction()
     {
         $userId = $this->get('session')->get('sUserId');
-        $addressId = $request->getParam('id', null);
+        $addressId = $this->Request()->getParam('id', null);
 
-        /** @var AddressRepository $repository */
-        $repository = $this->get('models')->getRepository(Address::class);
+        $address = $this->addressRepository->getOneByUser($addressId, $userId);
 
-        if ($addressId) {
-            $address = $repository->getDetailByUserQuery($addressId, $userId)->getSingleResult();
-        } else {
-            $address = new Address();
-            $address->setCustomer(
-                $this->get('models')->find(Customer::class, $userId)
-            );
+        if ($this->Request()->isPost()) {
+            $this->addressService->delete($address);
 
-            $this->get('models')->persist($address);
+            $this->redirect(['action' => 'index', 'success' => 'delete']);
+            return;
         }
 
-        return $address;
+        $addressView = $this->get('models')->toArray($address);
+        $addressView['country'] = $this->get('models')->toArray($address->getCountry());
+        $addressView['state'] = $this->get('models')->toArray($address->getState());
+        $addressView['attribute'] = $this->get('models')->toArray($address->getAttribute());
+
+        $this->View()->assign('address', $addressView);
+    }
+
+    /**
+     * @param FormInterface $form
+     * @return array
+     */
+    private function getFormViewData(FormInterface $form)
+    {
+        $errorFlags = [];
+        $errorMessages = [];
+        $viewData = [];
+
+        foreach ($form->getErrors(true) as $error) {
+            $errorFlags[$error->getOrigin()->getName()] = true;
+            $errorMessages[] = $this->get('snippets')->getNamespace('frontend/account/internalMessages')
+                ->get('ErrorFillIn', 'Please fill in all red fields');
+        }
+
+        $errorMessages = array_unique($errorMessages);
+
+        $formData = array_merge(
+            $this->get('models')->toArray($form->getViewData()),
+            ['attribute' => $this->get('models')->toArray($form->getViewData()->getAttribute())],
+            $form->getExtraData()
+        );
+
+        $viewData['error_flags'] = $errorFlags;
+        $viewData['error_messages'] = $errorMessages;
+        $viewData['countryList'] = $this->admin->sGetCountryList();
+        $viewData['formData'] = $formData;
+
+        return $viewData;
+    }
+
+    /**
+     * Sets the default shipping address
+     */
+    public function setDefaultShippingAddressAction()
+    {
+        $userId = $this->get('session')->get('sUserId');
+        $addressId = $this->Request()->getParam('addressId', null);
+
+        $address = $this->addressRepository->getOneByUser($addressId, $userId);
+
+        if (!$this->Request()->isPost()) {
+            $this->redirect(['action' => 'index']);
+            return;
+        }
+
+        $this->addressService->setDefaultShippingAddress($address);
+
+        $this->redirect(['action' => 'index', 'success' => 'default_shipping']);
+    }
+
+    /**
+     * Sets the default shipping address
+     */
+    public function setDefaultBillingAddressAction()
+    {
+        $userId = $this->get('session')->get('sUserId');
+        $addressId = $this->Request()->getParam('addressId', null);
+
+        $address = $this->addressRepository->getOneByUser($addressId, $userId);
+
+        if (!$this->Request()->isPost()) {
+            $this->redirect(['action' => 'index']);
+            return;
+        }
+
+        $this->addressService->setDefaultBillingAddress($address);
+
+        $this->redirect(['action' => 'index', 'success' => 'default_billing']);
     }
 }

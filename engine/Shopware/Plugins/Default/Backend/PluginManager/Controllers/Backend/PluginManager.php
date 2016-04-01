@@ -271,8 +271,11 @@ class Shopware_Controllers_Backend_PluginManager
             $plugins = $this->get('shopware_plugininstaller.plugin_service_view')
                 ->getLocalListing($context);
         } else {
-            $plugins = $this->get('shopware_plugininstaller.plugin_service_local')
-                ->getListing($context)->getPlugins();
+
+            /** @var \Shopware\Bundle\PluginInstallerBundle\Service\PluginLocalService $localService */
+            $localService = $this->get('shopware_plugininstaller.plugin_service_local');
+
+            $plugins = $localService->getListing($context)->getPlugins();
         }
 
         $this->View()->assign([
@@ -609,7 +612,7 @@ class Shopware_Controllers_Backend_PluginManager
      */
     private function getLocale()
     {
-        return Shopware()->Auth()->getIdentity()->locale->getLocale();
+        return Shopware()->Container()->get('Auth')->getIdentity()->locale->getLocale();
     }
 
     /**

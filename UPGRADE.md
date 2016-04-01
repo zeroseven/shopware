@@ -7,6 +7,7 @@ In this document you will find a changelog of the important changes related to t
 * Added CSRF protection to the backend which is enabled by default.
     * OptOut by implementing `CSRFWhitelistAware` interface
     * Added `X-CSRF-Token` to every ajax request
+    * Added `__csrf_token` param to every ExtJS form submit via override in `ExtJs/overrides/Ext.form.Base.js`
     * See: https://developers.shopware.com/developers-guide/csrf-protection/
 * Update Symfony Components to version 2.8 LTS
 * Replace polyfill provided by `indigophp/hash-compat` with `symfony/polyfill-php56`
@@ -80,16 +81,61 @@ In this document you will find a changelog of the important changes related to t
     * `\Shopware\Models\Customer\Customer::setDebit()`
 * Added new configuration field to the emotion banner widget for link target.
 * Added composer dependency for Symfony Form and implemented FormBundle
+* Changed constructor of `\Shopware\Components\Theme\PathResolver`
+* Changed constructor of `\Shopware_Components_Snippet_Manager`
+* Changed constructor of `\Shopware\Bundle\PluginInstallerBundle\Service\DownloadService`
+* Changed signature of `Shopware\Bundle\SearchBundleDBAL\PriceHelperInterface::getSelection`, now expects `ProductContextInterface` instead of `ShopContextInterface`
+* Changed signature of `Shopware\Bundle\SearchBundleDBAL\PriceHelper::getSelection` to match changed interface, now expects `ProductContextInterface` instead of `ShopContextInterface`
+* Changed signature of `Shopware\Bundle\StoreFrontBundle\Service\CheapestPriceServiceInterface::getList`, now expects `ProductContextInterface` instead of `ShopContextInterface`
+* Changed signature of `Shopware\Bundle\StoreFrontBundle\Service\CheapestPriceServiceInterface::get`, now expects `ProductContextInterface` instead of `ShopContextInterface` and `ListProduct` instead of `BaseProduct`
+* Changed signature of `Shopware\Bundle\StoreFrontBundle\Service\Core\CheapestPriceService::getList` to match changed interface, now expects `ProductContextInterface` instead of `ShopContextInterface`
+* Changed signature of `Shopware\Bundle\StoreFrontBundle\Service\Core\CheapestPriceService::get` to match changed interface, now expects `ProductContextInterface` instead of `ShopContextInterface` and `ListProduct` instead of `BaseProduct`
+* Deprecated methods now use `trigger_error` of type `E_USER_DEPRECATED`
+* Changed default error_reporting to `E_ALL & ~E_USER_DEPRECATED`
+* Deprecated Class `Enlight_Application`
+* Deprecated `Enlight_Application::Instance()` and `Enlight()`, use `Shopware()` instead
+* Deprecated `Shopware\Kernel::getShopware()`
+* Deprecated `Shopware::App()` / `Shopware()->App()`
+* Deprecated `Shopware::Environment()` / `Shopware()->Environment()`
+* Deprecated `Shopware::OldPath()` / `Shopware()->OldPath()`
+* Deprecated `Shopware::setEventManager()` / `Shopware()->setEventManager()`
+* Deprecated `Enlight_Application::CorePath()` / `Shopware()->CorePath()`
+* Deprecated `Enlight_Application::Path()` / `Shopware()->Path()`
+* Deprecated `Enlight_Application::ComponentsPath()` / `Shopware()->ComponentsPath()`
+* Deprecated `Enlight_Application::DS()`
+* Removed `Enlight_Application::setOptions()`
+* Removed `Enlight_Application::getOptions()`
+* Removed `Enlight_Application::getOption()`
+* Removed `Enlight_Application::setPhpSettings()`
+* Removed `Enlight_Application::setIncludePaths()`
+* Removed `Enlight_Application::__callStatic()`
+* Removed the following models
+    * `Shopware.apps.Customer.view.detail.Billing`
+    * `Shopware.apps.Customer.view.detail.Shipping`
+* Removed fax field form billing addresses
+* Updated `ongr/elasticsearch-dsl` to v2.0.0, see https://github.com/ongr-io/ElasticsearchDSL/blob/master/CHANGELOG.md#v200-2016-03-03 for BC breaks.
+* Renamed block 'frontend_blog_bookmarks_deliciosus' to 'frontend_blog_bookmarks_delicious'
+* Deprecated `\Shopware\Models\Article\Element`
 
 ## 5.1.4
 * Customer logout will now regenerate the session id and clear the customers basket.
 * Added `IsNew` condition for product streams
+* Added `SimilarProducts` condition
+* Deprecated Method `Shopware\Bundle\StoreFrontBundle\Gateway\SimilarProductsGatewayInterface::getListByCategory` will be removed in shopware version 5.3
+* Deprecated Method `Shopware\Bundle\StoreFrontBundle\Gateway\SimilarProductsGatewayInterface::getByCategory` will be removed in shopware version 5.3
 * Added method `\Shopware\Models\Article\Repository::getSupplierListQueryBuilder()` to make the query builder extensible
 * Added index on `s_article_img_mapping_rules`.`mapping_id` and `s_article_img_mapping_rules`.`option_id`
 * Fixed `AND` search logic for search terms which not exist in the s_articles table.
 * Added order and payment state constants in `\Shopware\Models\Order\Status`
 * change email validation to a simple regex: `/^.+\@\S+\.\S+$/`. You can implement your own email validation by implementing the `EmailValidatorInterface`.
 * Optimized header lookups for `x-shopware-cache-id` will improve HTTP-Cache invalidation performance. Old behaviour can be restored by setting `lookup_optimization` to false
+* Moved the `div` element in block `frontend_index_left_switches` below `ul` element for W3C compatability in `themes/Frontend/Bare/frontend/index/sidebar.tpl`.
+* Added css rule in order to remove bottom border from last child of `.emotion--html > .html--content` so there is no scrollbar when only whitespace would overlap parent div
+* Enabled product streams for parent categories
+* Disabled the automatic detection of similar products for install customers. Enabling this option may decrease the shop performance.
+* Fixed the `removeListener` method in `Enlight_Event_Subscriber_Config`, `Enlight_Event_Subscriber_Array` and `Enlight_Event_EventManager`
+* Removed `engine/Shopware/Bundle/SearchBundleES/SimilarProductsService.php`
+* Added the possibility to configure the file and directory permissions for the `Local` CDN adapter.
 
 ## 5.1.3
 * Switch Grunt to relativeUrls to unify the paths to less.php
@@ -103,6 +149,63 @@ In this document you will find a changelog of the important changes related to t
     * `frontend_index_footer_column_information_menu_headline`
     * `frontend_index_footer_column_newsletter_headline`
 * Removed out-of-stock variant selection due to problems
+* Removed the following backend models including their smarty blocks
+    * `Shopware.apps.Supplier.model.Attribute`
+    * `Shopware.apps.Customer.model.BillingAttributes`
+    * `Shopware.apps.Customer.model.ShippingAttributes`
+    * `Shopware.apps.Customer.model.Attribute`
+    * `Shopware.apps.Blog.model.Attribute`
+    * `Shopware.apps.Form.model.Attribute`
+    * `Shopware.apps.MediaManager.model.Attribute`
+    * `Shopware.apps.Property.model.Attribute`
+    * `Shopware.apps.Config.model.form.Attribute`
+    * `Shopware.apps.Voucher.model.Attribute`
+    * `Shopware.apps.Emotion.model.Attribute`
+    * `Shopware.apps.Banner.model.Attribute`
+    * `Shopware.apps.Order.model.Attribute`
+    * `Shopware.apps.Order.model.BillingAttribute`
+    * `Shopware.apps.Order.model.PositionAttribute`
+    * `Shopware.apps.Order.model.ReceiptAttribute`
+    * `Shopware.apps.Order.model.ShippingAttribute`
+* The following repository methods no longer select attributes or have been removed entirely
+    * `\Shopware\Models\Article\Repository::getSupplierQueryBuilder()`
+    * `\Shopware\Models\Customer\Repository::getCustomerDetailQueryBuilder()`
+    * `\Shopware\Models\Customer\Repository::getShippingAttributesQuery()`
+    * `\Shopware\Models\Customer\Repository::getShippingAttributesQueryBuilder()`
+    * `\Shopware\Models\Customer\Repository::getBillingAttributesQuery()`
+    * `\Shopware\Models\Customer\Repository::getBillingAttributesQueryBuilder()`
+    * `\Shopware\Models\Customer\Repository::getAttributesQuery()`
+    * `\Shopware\Models\Customer\Repository::getAttributesQueryBuilder()`
+    * `\Shopware\Models\Blog\Repository::getBackedDetailQueryBuilder()`
+    * `\Shopware\Models\Emotion\Repository::getEmotionDetailQueryBuilder()`
+    * `\Shopware\Models\ProductFeed\Repository::getDetailQueryBuilder()`
+    * `\Shopware\Models\Banner\Repository::getBannerMainQuery()`
+    * `\Shopware\Models\Order\Repository::getBackendOrdersQueryBuilder()`
+    * `\Shopware\Models\Order\Repository::getBackendAdditionalOrderDataQuery()`
+* Removed attribute associations from the following backend models
+    * `Shopware.apps.Supplier.model.Supplier`
+    * `Shopware.apps.Customer.model.Customer`
+    * `Shopware.apps.Blog.model.Detail`
+    * `Shopware.apps.Form.model.Form`
+    * `Shopware.apps.Property.model.Set`
+    * `Shopware.apps.MediaManager.model.Media`
+    * `Shopware.apps.Emotion.model.Emotion`
+    * `Shopware.apps.Config.model.form.Country`
+    * `Shopware.apps.Banner.model.BannerDetail`
+    * `Shopware.apps.Voucher.model.Detail`
+    * `Shopware.apps.Order.model.Receipt`
+    * `Shopware.apps.Order.model.Position`
+    * `Shopware.apps.Order.model.Order`
+* Removed the following backend files:
+    * `themes/Backend/ExtJs/backend/blog/view/blog/detail/sidebar/attributes.js`
+    * `themes/Backend/ExtJs/backend/config/store/form/attribute.js`
+    * `themes/Backend/ExtJs/backend/config/view/form/attribute.js`
+    * `themes/Backend/ExtJs/backend/config/model/form/attribute.js`
+* Changed position of `Shopware.apps.Customer.view.detail.Billing` fields
+* Changed position of `Shopware.apps.Customer.view.detail.Shipping` fields
+* Fixed Shopware.form.plugin.Translation, the plugin can now be used in multiple forms at the same time.
+    * Removed `clear`, `onOpenTranslationWindow`, `getFieldValues` and `onGetTranslatableFields` function
+* `\Shopware\Bundle\StoreFrontBundle\Gateway\GraduatedPricesGatewayInterface` requires now a provided `ShopContextInterface`
 
 ## 5.1.2
 * Out-of-stock variants on the detail page are now selectable

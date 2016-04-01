@@ -9,6 +9,7 @@ class Migrations_Migration708 extends Shopware\Components\Migrations\AbstractMig
     public function up($modus)
     {
         $this->changeConfusingVatLabel();
+        $this->createDefaultShippingBillingRelations();
         $this->createAddressTables();
     }
 
@@ -17,7 +18,7 @@ class Migrations_Migration708 extends Shopware\Components\Migrations\AbstractMig
         $sql = <<<SQL
 CREATE TABLE `s_user_addresses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `userID` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   `company` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `department` varchar(35) COLLATE utf8_unicode_ci DEFAULT NULL,
   `salutation` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
@@ -26,19 +27,19 @@ CREATE TABLE `s_user_addresses` (
   `street` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `zipcode` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
   `city` varchar(70) COLLATE utf8_unicode_ci NOT NULL,
-  `countryID` int(11) NOT NULL,
-  `stateID` int(11) DEFAULT NULL,
+  `country_id` int(11) NOT NULL,
+  `state_id` int(11) DEFAULT NULL,
   `ustid` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
   `phone` varchar(40) COLLATE utf8_unicode_ci DEFAULT NULL,
   `additional_address_line1` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `additional_address_line2` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `userID` (`userID`),
-  KEY `countryID` (`countryID`),
-  KEY `stateID` (`stateID`),
-  CONSTRAINT `s_user_addresses_ibfk_1` FOREIGN KEY (`countryID`) REFERENCES `s_core_countries` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `s_user_addresses_ibfk_2` FOREIGN KEY (`stateID`) REFERENCES `s_core_countries_states` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `s_user_addresses_ibfk_3` FOREIGN KEY (`userID`) REFERENCES `s_user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `user_id` (`user_id`),
+  KEY `country_id` (`country_id`),
+  KEY `state_id` (`state_id`),
+  CONSTRAINT `s_user_addresses_ibfk_1` FOREIGN KEY (`country_id`) REFERENCES `s_core_countries` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `s_user_addresses_ibfk_2` FOREIGN KEY (`state_id`) REFERENCES `s_core_countries_states` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `s_user_addresses_ibfk_3` FOREIGN KEY (`user_id`) REFERENCES `s_user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
 SQL;
 
@@ -47,10 +48,16 @@ SQL;
         $sql = <<<SQL
 CREATE TABLE `s_user_addresses_attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `addressID` int(11) NOT NULL,
+  `address_id` int(11) NOT NULL,
+  `text1` VARCHAR(255) DEFAULT NULL,
+  `text2` VARCHAR(255) DEFAULT NULL,
+  `text3` VARCHAR(255) DEFAULT NULL,
+  `text4` VARCHAR(255) DEFAULT NULL,
+  `text5` VARCHAR(255) DEFAULT NULL,
+  `text6` VARCHAR(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `addressID` (`addressID`),
-  CONSTRAINT `s_user_addresses_attributes_ibfk_1` FOREIGN KEY (`addressID`) REFERENCES `s_user_addresses` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  UNIQUE KEY `address_id` (`address_id`),
+  CONSTRAINT `s_user_addresses_attributes_ibfk_1` FOREIGN KEY (`address_id`) REFERENCES `s_user_addresses` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
 SQL;
         $this->addSql($sql);
@@ -70,6 +77,19 @@ SET
 WHERE
   origin.name = 'vatcheckrequired'
 SQL;
+        $this->addSql($sql);
+    }
+
+    private function createDefaultShippingBillingRelations()
+    {
+        $sql = <<<SQL
+ALTER TABLE `s_user`
+ADD `default_billing_address_id` int(11) DEFAULT NULL,
+ADD `default_shipping_address_id` int(11) DEFAULT NULL AFTER `default_billing_address_id`,
+ADD INDEX `default_billing_address_id` (`default_billing_address_id`),
+ADD INDEX `default_shipping_address_id` (`default_shipping_address_id`);
+SQL;
+
         $this->addSql($sql);
     }
 }

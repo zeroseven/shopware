@@ -26,6 +26,7 @@ namespace   Shopware\Models\Order;
 
 use Shopware\Components\Model\ModelEntity;
 use Doctrine\ORM\Mapping as ORM;
+use Shopware\Models\Customer\Address;
 
 /**
  * The Shopware order shipping model represents the shipping address for a single order.
@@ -526,5 +527,31 @@ class Shipping extends ModelEntity
     public function getAdditionalAddressLine1()
     {
         return $this->additionalAddressLine1;
+    }
+
+    /**
+     * Transfer values from the new address object
+     *
+     * @param Address $address
+     */
+    public function fromAddress(Address $address)
+    {
+        $this->setCompany((string) $address->getCompany());
+        $this->setDepartment((string) $address->getDepartment());
+        $this->setSalutation((string) $address->getSalutation());
+        $this->setFirstName((string) $address->getFirstname());
+        $this->setLastName((string) $address->getLastname());
+        $this->setStreet((string) $address->getStreet());
+        $this->setCity((string) $address->getCity());
+        $this->setZipCode((string) $address->getZipcode());
+        $this->setAdditionalAddressLine1((string) $address->getAdditionalAddressLine1());
+        $this->setAdditionalAddressLine2((string) $address->getAdditionalAddressLine2());
+        $this->setCountry($address->getCountry());
+
+        if ($address->getState()) {
+            $this->setState($address->getState());
+        } else {
+            $this->setState(null);
+        }
     }
 }

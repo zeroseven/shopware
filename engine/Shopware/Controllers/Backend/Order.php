@@ -356,17 +356,12 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             $additionalOrderData = $additionalOrderDataQuery->getOneOrNullResult(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
 
             $order = array_merge($order, $additionalOrderData);
-            //we need to set the billing and shipping attributes to the first array level to load the data into a form panel
-            //same for locale
-            $order['billingAttribute'] = $order['billing']['attribute'];
-            $order['shippingAttribute'] = $order['shipping']['attribute'];
-            $order['locale'] = $order['languageSubShop']['locale'];
+            $order['locale']= $order['languageSubShop']['locale'];
 
             //Deprecated: use payment instance
             $order['debit'] = $order['customer']['debit'];
 
-            unset($order['billing']['attribute']);
-            unset($order['shipping']['attribute']);
+            $order['customerEmail'] = $order['customer']['email'];
 
             //find the instock of the article
             foreach ($order["details"] as &$orderDetail) {
@@ -699,7 +694,6 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             return;
         }
 
-        $data['attribute'] = $data['attribute'][0];
         $position->fromArray($data);
         $position->setOrder($order);
 
@@ -733,39 +727,6 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             'invoiceAmount' => $invoiceAmount
         ));
     }
-
-    /**
-     * Internal helper function to save the dynamic attributes of an article price.
-     * @param $position
-     * @param $attributeData
-     * @return mixed
-     */
-    private function savePositionAttributes($position, $attributeData)
-    {
-        if (empty($attributeData)) {
-            return;
-        }
-        if ($position->getId() > 0) {
-            $builder = Shopware()->Models()->createQueryBuilder();
-            $builder->select(array('attribute'))
-                ->from('Shopware\Models\Attribute\OrderDetail', 'attribute')
-                ->where('attribute.orderDetailId = ?1')
-                ->setParameter(1, $position->getId());
-
-            $result = $builder->getQuery()->getOneOrNullResult();
-            if (empty($result)) {
-                $attributes = new \Shopware\Models\Attribute\OrderDetail();
-            } else {
-                $attributes = $result;
-            }
-        } else {
-            $attributes = new \Shopware\Models\Attribute\OrderDetail();
-        }
-        $attributes->fromArray($attributeData);
-        $attributes->setOrderDetail($position);
-        $this->getManager()->persist($attributes);
-    }
-
 
     /**
      * CRUD function delete of the position and list store of the backend order module.
@@ -1065,7 +1026,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             return;
         }
 
-        $mail = clone Shopware()->Mail();
+        $mail = clone Shopware()->Container()->get('mail');
         $mail->clearRecipients();
         $mail->setSubject($this->Request()->getParam('subject', ''));
         $mail->setBodyText($this->Request()->getParam('content', ''));
@@ -1219,21 +1180,9 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             unset($data['tax']);
         }
 
-        $articleDetails = null;
-        // Add articleId if it's not provided by the client
-        if ($data['articleId'] == 0 && !empty($data['articleNumber'])) {
-            $detailRepo = Shopware()->Models()->getRepository('Shopware\Models\Article\Detail');
-            /** @var \Shopware\Models\Article\Detail $articleDetails */
-            $articleDetails = $detailRepo->findOneBy(array('number' => $data['articleNumber']));
-            if ($articleDetails) {
-                $data['articleId'] = $articleDetails->getArticle()->getId();
-            }
-        }
-        if (!$articleDetails && $data['articleId']) {
-            /** @var \Shopware\Models\Article\Detail $articleDetails */
-            $articleDetails = Shopware()->Models()->getRepository('Shopware\Models\Article\Detail')
-                ->findOneBy(array('number' => $data['articleNumber']));
-        }
+        /** @var \Shopware\Models\Article\Detail $articleDetails */
+        $articleDetails = Shopware()->Models()->getRepository('Shopware\Models\Article\Detail')
+            ->findOneBy(array('number' => $data['articleNumber']));
 
         //Load ean, unit and pack unit (translate if needed)
         if ($articleDetails) {
@@ -1365,9 +1314,6 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
 
         $data['billing'] = $this->prepareAddressData($data['billing'][0]);
         $data['shipping'] = $this->prepareAddressData($data['shipping'][0]);
-        $data['attribute'] = $data['attribute'][0];
-        $data['billing']['attribute'] = $data['billingAttribute'][0];
-        $data['shipping']['attribute'] = $data['shippingAttribute'][0];
 
         //unset calculated values
         unset($data['invoiceAmountNet']);

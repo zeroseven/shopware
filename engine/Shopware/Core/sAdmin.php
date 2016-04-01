@@ -22,6 +22,8 @@
  * our trademarks remain entirely with us.
  */
 
+use Shopware\Bundle\AccountBundle\Service\AddressServiceInterface;
+use Shopware\Bundle\AccountBundle\Service\AddressImportServiceInterface;
 use Shopware\Bundle\StoreFrontBundle;
 use Shopware\Components\Validator\EmailValidatorInterface;
 
@@ -126,18 +128,30 @@ class sAdmin
      */
     public $sSYSTEM;
 
+    /**
+     * @var AddressImportServiceInterface
+     */
+    private $addressImportService;
+
+    /**
+     * @var AddressServiceInterface
+     */
+    private $addressService;
+
     public function __construct(
-        Enlight_Components_Db_Adapter_Pdo_Mysql          $db                 = null,
-        Enlight_Event_EventManager                       $eventManager       = null,
-        Shopware_Components_Config                       $config             = null,
-        Enlight_Components_Session_Namespace             $session            = null,
-        Enlight_Controller_Front                         $front              = null,
-        \Shopware\Components\Password\Manager            $passwordEncoder    = null,
-        Shopware_Components_Snippet_Manager              $snippetManager     = null,
-        Shopware_Components_Modules                      $moduleManager      = null,
-        sSystem                                          $systemModule       = null,
-        StoreFrontBundle\Service\ContextServiceInterface $contextService     = null,
-        EmailValidatorInterface                          $emailValidator     = null
+        Enlight_Components_Db_Adapter_Pdo_Mysql          $db                    = null,
+        Enlight_Event_EventManager                       $eventManager          = null,
+        Shopware_Components_Config                       $config                = null,
+        Enlight_Components_Session_Namespace             $session               = null,
+        Enlight_Controller_Front                         $front                 = null,
+        \Shopware\Components\Password\Manager            $passwordEncoder       = null,
+        Shopware_Components_Snippet_Manager              $snippetManager        = null,
+        Shopware_Components_Modules                      $moduleManager         = null,
+        sSystem                                          $systemModule          = null,
+        StoreFrontBundle\Service\ContextServiceInterface $contextService        = null,
+        EmailValidatorInterface                          $emailValidator        = null,
+        AddressImportServiceInterface                    $addressImportService  = null,
+        AddressServiceInterface                          $addressService        = null
     ) {
         $this->db = $db ? : Shopware()->Db();
         $this->eventManager = $eventManager ? : Shopware()->Events();
@@ -155,6 +169,8 @@ class sAdmin
         $this->contextService = $contextService ? : Shopware()->Container()->get('shopware_storefront.context_service');
         $this->emailValidator = $emailValidator ? : Shopware()->Container()->get('validator.email');
         $this->subshopId = $this->contextService->getShopContext()->getShop()->getParentId();
+        $this->addressImportService = $addressImportService ? : Shopware()->Container()->get('shopware_account.address_import_service');
+        $this->addressService = $addressService ? : Shopware()->Container()->get('shopware_account.address_service');
     }
 
     /**
@@ -514,7 +530,6 @@ class sAdmin
             'zipcode',
             'city',
             'phone',
-            'fax',
             'countryID',
             'stateID',
             'ustid',
@@ -1810,6 +1825,7 @@ class sAdmin
         } else {
             $date = "0000-00-00";
         }
+        $hasShippingAddress = count($userObject['shipping']) > 0;
         $userObject = $userObject["billing"];
         $data = array(
             $userID,
@@ -1822,7 +1838,6 @@ class sAdmin
             $userObject["zipcode"],
             $userObject["city"],
             empty($userObject["phone"]) ? "" : $userObject["phone"],
-            empty($userObject["fax"]) ? "" : $userObject["fax"],
             $userObject["country"],
             empty($userObject["stateID"]) ? 0 : $userObject["stateID"] ,
             empty($userObject["ustid"]) ? "" : $userObject["ustid"],
@@ -1834,9 +1849,9 @@ class sAdmin
         $sqlBilling = "INSERT INTO s_user_billingaddress
             (userID, company, department, salutation, firstname, lastname,
             street, zipcode, city,phone,
-            fax, countryID, stateID, ustid, birthday, additional_address_line1, additional_address_line2)
+            countryID, stateID, ustid, birthday, additional_address_line1, additional_address_line2)
             VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         // Trying to insert
         list($sqlBilling, $data) = $this->eventManager->filter(
@@ -1877,6 +1892,19 @@ class sAdmin
             'Shopware_Modules_Admin_SaveRegisterBillingAttributes_Return',
             array('subject' => $this, 'insertObject' => $saveAttributeData)
         );
+
+        try {
+            $address = $this->addressImportService->importCustomerBilling($userID);
+            $this->addressService->setDefaultBillingAddress($address);
+
+            if ($hasShippingAddress === false) {
+                $this->addressService->setDefaultShippingAddress($address);
+            }
+        } catch (\Exception $ex) {
+            // Exception is thrown, if there is no address to import or it is
+            // a duplicate of an existing address
+        }
+
 
         return $billingID;
     }
@@ -1952,6 +1980,14 @@ class sAdmin
             'Shopware_Modules_Admin_SaveRegisterShippingAttributes_Return',
             array('subject' => $this, 'insertObject' => $saveAttributeData)
         );
+
+        try {
+            $address = $this->addressImportService->importCustomerShipping($userID);
+            $this->addressService->setDefaultShippingAddress($address);
+        } catch (\Exception $ex) {
+            // Exception is thrown, if there is no address to import or it is
+            // a duplicate of an existing address
+        }
 
         return $shippingId;
     }

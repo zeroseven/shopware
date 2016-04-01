@@ -153,13 +153,6 @@ class Billing extends ModelEntity
     protected $phone = '';
 
     /**
-     * Contains the fax of the billing address
-     * @var string $fax
-     * @ORM\Column(name="fax", type="string", length=40, nullable=false)
-     */
-    protected $fax = '';
-
-    /**
      * Contains the vat id of the billing address
      * @var string $vatId
      * @ORM\Column(name="ustid", type="string", length=50, nullable=false)
@@ -438,28 +431,6 @@ class Billing extends ModelEntity
     }
 
     /**
-     * Setter function for the fax column property.
-     *
-     * @param string $fax
-     * @return Billing
-     */
-    public function setFax($fax)
-    {
-        $this->fax = $fax;
-        return $this;
-    }
-
-    /**
-     * Getter function for the fax column property.
-     *
-     * @return string
-     */
-    public function getFax()
-    {
-        return $this->fax;
-    }
-
-    /**
      * Setter function for the countryId column property.
      *
      * @param $countryId
@@ -650,5 +621,33 @@ class Billing extends ModelEntity
     public function getAdditionalAddressLine1()
     {
         return $this->additionalAddressLine1;
+    }
+
+    /**
+     * Transfer values from the new address object
+     *
+     * @param Address $address
+     */
+    public function fromAddress(Address $address)
+    {
+        $this->setCompany((string) $address->getCompany());
+        $this->setDepartment((string) $address->getDepartment());
+        $this->setSalutation((string) $address->getSalutation());
+        $this->setFirstName((string) $address->getFirstname());
+        $this->setLastName((string) $address->getLastname());
+        $this->setStreet((string) $address->getStreet());
+        $this->setCity((string) $address->getCity());
+        $this->setZipCode((string) $address->getZipcode());
+        $this->setAdditionalAddressLine1((string) $address->getAdditionalAddressLine1());
+        $this->setAdditionalAddressLine2((string) $address->getAdditionalAddressLine2());
+        $this->setCountryId($address->getCountry()->getId());
+        $this->setPhone((string) $address->getPhone());
+        $this->setVatId((string) $address->getVatId());
+
+        if ($address->getState()) {
+            $this->setStateId($address->getState()->getId());
+        } else {
+            $this->setStateId(null);
+        }
     }
 }
